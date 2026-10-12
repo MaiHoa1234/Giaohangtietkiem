@@ -13,7 +13,6 @@ import {
   LogOut,
   LogIn,
   X,
-  Database,
   Layers,
   FileSpreadsheet,
   PackageCheck,
@@ -25,7 +24,6 @@ interface SidebarProps {
   currentView: string;
   onNavigate: (view: string) => void;
   onOpenCalculator: () => void;
-  onOpenDatabaseModal: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
 }
@@ -34,7 +32,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onNavigate,
   onOpenCalculator,
-  onOpenDatabaseModal,
   isOpenMobile,
   onCloseMobile,
 }) => {
@@ -262,25 +259,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {navItem('SHOP', 'Cổng Doanh Nghiệp Shop', Store)}
                 {navItem('DISPATCHER', 'Cổng Điều Phối Kho', Compass)}
                 {navItem('SHIPPER', 'Cổng Tài Xế Shipper', Bike)}
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenDatabaseModal();
-                    onCloseMobile();
-                  }}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100/90 border border-indigo-200 transition cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Database className="w-4 h-4 text-indigo-600" />
-                    <span>CSDL MySQL (XAMPP)</span>
-                  </div>
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 bg-indigo-200 text-indigo-900 rounded">
-                    .sql
-                  </span>
-                </button>
               </div>
             </>
           )}

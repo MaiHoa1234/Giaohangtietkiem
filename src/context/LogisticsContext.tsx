@@ -99,6 +99,7 @@ interface LogisticsContextType {
   
   settleReconciliationBatch: (batchId: string) => boolean;
   createCustomerAddress: (address: Omit<CustomerAddress, 'id'>) => CustomerAddress;
+  deleteCustomerAddress: (id: string) => boolean;
   updatePricingRule: (newRules: Partial<PricingRule>) => void;
   addShipper: (data: {
     name: string;
@@ -108,6 +109,8 @@ interface LogisticsContextType {
     warehouseId?: string;
     email?: string;
   }) => Shipper;
+  updateShipper: (id: string, data: Partial<Shipper>) => boolean;
+  deleteShipper: (id: string) => boolean;
   addStaffUser: (data: {
     name: string;
     phone: string;
@@ -116,6 +119,8 @@ interface LogisticsContextType {
     warehouseId?: string;
     position?: string;
   }) => UserProfile;
+  updateStaffUser: (id: string, data: Partial<UserProfile>) => boolean;
+  deleteStaffUser: (id: string) => boolean;
   addWarehouse: (data: {
     code: string;
     name: string;
@@ -125,6 +130,8 @@ interface LogisticsContextType {
     manager: string;
     capacity?: number;
   }) => Warehouse;
+  updateWarehouse: (id: string, data: Partial<Warehouse>) => boolean;
+  deleteWarehouse: (id: string) => boolean;
   resetAllData: () => void;
 }
 
@@ -870,6 +877,12 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return newAddr;
   };
 
+  const deleteCustomerAddress = (id: string): boolean => {
+    setAddresses((prev) => prev.filter((a) => a.id !== id));
+    addLog('Xóa địa chỉ', `Đã xóa sổ địa chỉ`);
+    return true;
+  };
+
   const updatePricingRule = (newRules: Partial<PricingRule>) => {
     setPricingRule((prev) => ({ ...prev, ...newRules }));
     addLog('Cập nhật bảng giá', 'Quản trị viên đã thay đổi quy tắc tính cước hệ thống');
@@ -985,6 +998,140 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return newWh;
   };
 
+  const updateStaffUser = (id: string, data: Partial<UserProfile>): boolean => {
+    const target = users.find((u) => u.id === id);
+    if (!target) return false;
+
+    const updatedUser: UserProfile = { ...target, ...data };
+    const updatedUsers = users.map((u) => (u.id === id ? updatedUser : u));
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    if (currentUser.id === id) {
+      setCurrentUser(updatedUser);
+      localStorage.setItem(STORAGE_KEY_PREFIX + 'user', JSON.stringify(updatedUser));
+    }
+
+    // Sync with shippers list if user is a shipper
+    if (updatedUser.role === 'SHIPPER' || target.role === 'SHIPPER') {
+      const updatedShippers = shippers.map((sp) => {
+        if (sp.id === id.replace('user_', '') || sp.phone === target.phone) {
+          return {
+            ...sp,
+            name: data.name ?? sp.name,
+            phone: data.phone ?? sp.phone,
+            vehiclePlate: data.vehiclePlate ?? sp.vehiclePlate,
+            warehouseId: data.warehouseId ?? sp.warehouseId,
+          };
+        }
+        return sp;
+      });
+      setShippers(updatedShippers);
+      localStorage.setItem(STORAGE_KEY_PREFIX + 'shippers', JSON.stringify(updatedShippers));
+    }
+
+    addLog('Cập Nhật Nhân Sự', `Đã cập nhật thông tin nhân sự: ${updatedUser.name} (${updatedUser.role})`);
+    return true;
+  };
+
+  const deleteStaffUser = (id: string): boolean => {
+    const target = users.find((u) => u.id === id);
+    if (!target) return false;
+
+    const updatedUsers = users.filter((u) => u.id !== id);
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    if (currentUser.id === id) {
+      const fallback = updatedUsers[0] || INITIAL_USERS[0];
+      setCurrentUser(fallback);
+      localStorage.setItem(STORAGE_KEY_PREFIX + 'user', JSON.stringify(fallback));
+    }
+
+    if (target.role === 'SHIPPER') {
+      const updatedShippers = shippers.filter(
+        (sp) => sp.id !== id.replace('user_', '') && sp.phone !== target.phone
+      );
+      setShippers(updatedShippers);
+      localStorage.setItem(STORAGE_KEY_PREFIX + 'shippers', JSON.stringify(updatedShippers));
+    }
+
+    addLog('Xóa Nhân Sự', `Đã xóa tài khoản nhân sự ${target.name} (${target.role}) khỏi hệ thống`);
+    return true;
+  };
+
+  const updateShipper = (id: string, data: Partial<Shipper>): boolean => {
+    const target = shippers.find((s) => s.id === id);
+    if (!target) return false;
+
+    const updatedShipper: Shipper = { ...target, ...data };
+    const updatedShippers = shippers.map((s) => (s.id === id ? updatedShipper : s));
+    setShippers(updatedShippers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'shippers', JSON.stringify(updatedShippers));
+
+    // Sync corresponding user profile
+    const updatedUsers = users.map((u) => {
+      if (u.id === `user_${id}` || (u.role === 'SHIPPER' && u.phone === target.phone)) {
+        return {
+          ...u,
+          name: data.name ?? u.name,
+          phone: data.phone ?? u.phone,
+          vehiclePlate: data.vehiclePlate ?? u.vehiclePlate,
+          warehouseId: data.warehouseId ?? u.warehouseId,
+        };
+      }
+      return u;
+    });
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    addLog('Cập Nhật Shipper', `Đã cập nhật thông tin tài xế ${updatedShipper.name} (${updatedShipper.vehiclePlate})`);
+    return true;
+  };
+
+  const deleteShipper = (id: string): boolean => {
+    const target = shippers.find((s) => s.id === id);
+    if (!target) return false;
+
+    const updatedShippers = shippers.filter((s) => s.id !== id);
+    setShippers(updatedShippers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'shippers', JSON.stringify(updatedShippers));
+
+    const updatedUsers = users.filter(
+      (u) => u.id !== `user_${id}` && !(u.role === 'SHIPPER' && u.phone === target.phone)
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    addLog('Xóa Shipper', `Đã xóa tài xế ${target.name} (${target.vehiclePlate}) khỏi hệ thống`);
+    return true;
+  };
+
+  const updateWarehouse = (id: string, data: Partial<Warehouse>): boolean => {
+    const target = warehouses.find((w) => w.id === id);
+    if (!target) return false;
+
+    const updatedWh: Warehouse = { ...target, ...data };
+    const updatedWarehouses = warehouses.map((w) => (w.id === id ? updatedWh : w));
+    setWarehouses(updatedWarehouses);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'warehouses', JSON.stringify(updatedWarehouses));
+
+    addLog('Cập Nhật Bưu Cục', `Đã cập nhật thông tin bưu cục ${updatedWh.name} (${updatedWh.code})`);
+    return true;
+  };
+
+  const deleteWarehouse = (id: string): boolean => {
+    const target = warehouses.find((w) => w.id === id);
+    if (!target) return false;
+
+    const updatedWarehouses = warehouses.filter((w) => w.id !== id);
+    setWarehouses(updatedWarehouses);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'warehouses', JSON.stringify(updatedWarehouses));
+
+    addLog('Xóa Bưu Cục', `Đã xóa bưu cục ${target.name} (${target.code}) khỏi hệ thống`);
+    return true;
+  };
+
   const resetAllData = () => {
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith(STORAGE_KEY_PREFIX)) {
@@ -1046,10 +1193,17 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updateTicketStatus,
         settleReconciliationBatch,
         createCustomerAddress,
+        deleteCustomerAddress,
         updatePricingRule,
         addShipper,
+        updateShipper,
+        deleteShipper,
         addStaffUser,
+        updateStaffUser,
+        deleteStaffUser,
         addWarehouse,
+        updateWarehouse,
+        deleteWarehouse,
         resetAllData,
       }}
     >

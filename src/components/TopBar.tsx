@@ -3,7 +3,6 @@ import { useLogistics } from '../context/LogisticsContext';
 import {
   Menu,
   Search,
-  Database,
   LogIn,
   LogOut,
   User,
@@ -18,7 +17,6 @@ interface TopBarProps {
   onOpenMobileSidebar: () => void;
   onSearchTrack: (code: string) => void;
   onOpenCalculator: () => void;
-  onOpenDatabaseModal: () => void;
   onNavigateLogin: () => void;
 }
 
@@ -26,7 +24,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   currentView,
   onOpenMobileSidebar,
   onSearchTrack,
-  onOpenDatabaseModal,
   onNavigateLogin,
 }) => {
   const { currentUser, isAuthenticated, logout } = useLogistics();
@@ -128,16 +125,6 @@ export const TopBar: React.FC<TopBarProps> = ({
               Tra
             </button>
           </form>
-
-          {/* MySQL Database Trigger in TopBar */}
-          <button
-            onClick={onOpenDatabaseModal}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 transition"
-            title="Tải tệp database.sql để chạy trên XAMPP phpMyAdmin"
-          >
-            <Database className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span className="hidden sm:inline">CSDL MySQL (.sql)</span>
-          </button>
 
           {/* Authentication State: User profile with Logout OR Login Button */}
           {isAuthenticated ? (

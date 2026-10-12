@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLogistics } from '../context/LogisticsContext';
-import { SupportTicket, PricingRule, Shipment, Warehouse, UserRole } from '../types/logistics';
+import { SupportTicket, PricingRule, Shipment, Warehouse, UserRole, UserProfile } from '../types/logistics';
 import {
   ShieldCheck,
   BarChart3,
@@ -29,6 +29,10 @@ import {
   X,
   Search,
   Filter,
+  Pencil,
+  Trash2,
+  Edit3,
+  AlertCircle,
 } from 'lucide-react';
 
 export const AdminPortal: React.FC = () => {
@@ -44,7 +48,11 @@ export const AdminPortal: React.FC = () => {
     activityLogs,
     addShipper,
     addStaffUser,
+    updateStaffUser,
+    deleteStaffUser,
     addWarehouse,
+    updateWarehouse,
+    deleteWarehouse,
     resetAllData,
   } = useLogistics();
 
@@ -79,6 +87,23 @@ export const AdminPortal: React.FC = () => {
   const [newStaffArea, setNewStaffArea] = useState('Quận Tân Bình');
   const [staffModalSuccess, setStaffModalSuccess] = useState('');
 
+  // Staff search & role filter
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
+  const [staffRoleFilter, setStaffRoleFilter] = useState('ALL');
+
+  // Modal: Chỉnh Sửa Nhân Sự
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editUserName, setEditUserName] = useState('');
+  const [editUserPhone, setEditUserPhone] = useState('');
+  const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserRole, setEditUserRole] = useState<UserRole>('DISPATCHER');
+  const [editUserWarehouseId, setEditUserWarehouseId] = useState('');
+  const [editUserVehiclePlate, setEditUserVehiclePlate] = useState('');
+  const [editUserSuccess, setEditUserSuccess] = useState('');
+
+  // Modal: Xác Nhận Xóa Nhân Sự
+  const [deletingUser, setDeletingUser] = useState<UserProfile | null>(null);
+
   // Modal: Thêm Bưu Cục / Kho Mới
   const [isAddWarehouseModalOpen, setIsAddWarehouseModalOpen] = useState(false);
   const [newWhCode, setNewWhCode] = useState('');
@@ -89,6 +114,20 @@ export const AdminPortal: React.FC = () => {
   const [newWhManager, setNewWhManager] = useState('');
   const [newWhCapacity, setNewWhCapacity] = useState(15000);
   const [whModalSuccess, setWhModalSuccess] = useState('');
+
+  // Modal: Chỉnh Sửa Bưu Cục
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [editWhCode, setEditWhCode] = useState('');
+  const [editWhName, setEditWhName] = useState('');
+  const [editWhAddress, setEditWhAddress] = useState('');
+  const [editWhProvince, setEditWhProvince] = useState('');
+  const [editWhPhone, setEditWhPhone] = useState('');
+  const [editWhManager, setEditWhManager] = useState('');
+  const [editWhCapacity, setEditWhCapacity] = useState(15000);
+  const [editWhSuccess, setEditWhSuccess] = useState('');
+
+  // Modal: Xác Nhận Xóa Bưu Cục
+  const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null);
 
   // Dashboard KPI Metrics calculations
   const totalShipments = shipments.length;
@@ -199,6 +238,91 @@ export const AdminPortal: React.FC = () => {
       setNewWhManager('');
     }, 1200);
   };
+
+  // Edit & Delete Staff Handlers
+  const handleOpenEditUser = (u: UserProfile) => {
+    setEditingUser(u);
+    setEditUserName(u.name);
+    setEditUserPhone(u.phone);
+    setEditUserEmail(u.email);
+    setEditUserRole(u.role);
+    setEditUserWarehouseId(u.warehouseId || warehouses[0]?.id || '');
+    setEditUserVehiclePlate(u.vehiclePlate || '');
+    setEditUserSuccess('');
+  };
+
+  const handleSaveEditUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    updateStaffUser(editingUser.id, {
+      name: editUserName.trim(),
+      phone: editUserPhone.trim(),
+      email: editUserEmail.trim(),
+      role: editUserRole,
+      warehouseId: editUserWarehouseId,
+      vehiclePlate: editUserRole === 'SHIPPER' ? editUserVehiclePlate.trim() : undefined,
+    });
+    setEditUserSuccess(`Đã cập nhật thông tin nhân sự ${editUserName}!`);
+    setTimeout(() => {
+      setEditingUser(null);
+      setEditUserSuccess('');
+    }, 1000);
+  };
+
+  const handleConfirmDeleteUser = () => {
+    if (!deletingUser) return;
+    deleteStaffUser(deletingUser.id);
+    setDeletingUser(null);
+  };
+
+  // Edit & Delete Warehouse Handlers
+  const handleOpenEditWarehouse = (wh: Warehouse) => {
+    setEditingWarehouse(wh);
+    setEditWhCode(wh.code);
+    setEditWhName(wh.name);
+    setEditWhAddress(wh.address);
+    setEditWhProvince(wh.province);
+    setEditWhPhone(wh.phone);
+    setEditWhManager(wh.manager);
+    setEditWhCapacity(wh.capacity);
+    setEditWhSuccess('');
+  };
+
+  const handleSaveEditWarehouse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWarehouse) return;
+    updateWarehouse(editingWarehouse.id, {
+      code: editWhCode.trim(),
+      name: editWhName.trim(),
+      address: editWhAddress.trim(),
+      province: editWhProvince.trim(),
+      phone: editWhPhone.trim(),
+      manager: editWhManager.trim(),
+      capacity: editWhCapacity,
+    });
+    setEditWhSuccess(`Đã cập nhật thông tin bưu cục ${editWhName}!`);
+    setTimeout(() => {
+      setEditingWarehouse(null);
+      setEditWhSuccess('');
+    }, 1000);
+  };
+
+  const handleConfirmDeleteWarehouse = () => {
+    if (!deletingWarehouse) return;
+    deleteWarehouse(deletingWarehouse.id);
+    setDeletingWarehouse(null);
+  };
+
+  // Filtered staff
+  const filteredUsers = allUsers.filter((u) => {
+    const matchRole = staffRoleFilter === 'ALL' || u.role === staffRoleFilter;
+    const matchQuery =
+      !staffSearchQuery ||
+      u.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) ||
+      u.phone.includes(staffSearchQuery) ||
+      u.email.toLowerCase().includes(staffSearchQuery.toLowerCase());
+    return matchRole && matchQuery;
+  });
 
   return (
     <div className="space-y-6">
@@ -544,7 +668,7 @@ export const AdminPortal: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: STAFF & SHIPPERS MANAGEMENT (Admin thêm Trưởng bưu cục, Nhân viên bưu cục, Shipper) */}
+      {/* TAB 3: STAFF & SHIPPERS MANAGEMENT (Admin quản lý, thêm, sửa, xóa Trưởng bưu cục, Nhân viên bưu cục, Shipper) */}
       {activeTab === 'STAFF' && (
         <div className="space-y-4">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -553,18 +677,47 @@ export const AdminPortal: React.FC = () => {
                 Danh Sách Nhân Sự & Tài Khoản Phân Quyền Toàn Hệ Thống
               </h3>
               <p className="text-xs text-slate-500">
-                Admin có quyền bổ nhiệm Trưởng bưu cục mới, thêm Nhân viên bưu cục và thêm Tài xế Shipper cho bất kỳ bưu cục nào.
+                Admin có quyền bổ nhiệm Trưởng bưu cục, thêm / sửa / xóa thông tin Nhân viên bưu cục và Tài xế Shipper toàn quốc. Bấm vào bất kỳ nhân viên nào để chỉnh sửa hoặc xóa.
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setIsAddStaffModalOpen(true)}
-              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-105 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-105 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
             >
               <UserPlus className="w-4 h-4" />
               <span>+ Thêm Nhân Sự / Shipper Mới</span>
             </button>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={staffSearchQuery}
+                onChange={(e) => setStaffSearchQuery(e.target.value)}
+                placeholder="Tìm nhân sự theo tên, số điện thoại, email..."
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+              <select
+                value={staffRoleFilter}
+                onChange={(e) => setStaffRoleFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-hidden cursor-pointer"
+              >
+                <option value="ALL">Tất cả vai trò ({allUsers.length})</option>
+                <option value="ADMIN">Quản Trị Viên (ADMIN)</option>
+                <option value="DISPATCHER">Trưởng / NV Bưu Cục (DISPATCHER)</option>
+                <option value="SHIPPER">Tài Xế Giao Hàng (SHIPPER)</option>
+                <option value="SHOP">Chủ Cửa Hàng (SHOP)</option>
+                <option value="CUSTOMER">Khách Hàng (CUSTOMER)</option>
+              </select>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
@@ -578,54 +731,97 @@ export const AdminPortal: React.FC = () => {
                     <th className="py-3 px-4">Vai Trò Hệ Thống</th>
                     <th className="py-3 px-4">Bưu Cục Trực Thuộc</th>
                     <th className="py-3 px-4">Trạng Thái</th>
+                    <th className="py-3 px-4 text-center">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {allUsers.map((u) => {
-                    const assignedWh = warehouses.find((w) => w.id === u.warehouseId);
-                    return (
-                      <tr key={u.id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-3 px-4 flex items-center gap-3">
-                          <img
-                            src={u.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120'}
-                            alt={u.name}
-                            className="w-8 h-8 rounded-xl object-cover border border-slate-200"
-                          />
-                          <div>
-                            <div className="font-bold text-slate-900">{u.name}</div>
-                            {u.vehiclePlate && (
-                              <span className="font-mono text-[10px] text-slate-400">Xe: {u.vehiclePlate}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-mono font-medium text-slate-700">{u.phone}</td>
-                        <td className="py-3 px-4 text-slate-600 font-medium">{u.email}</td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
-                              u.role === 'ADMIN'
-                                ? 'bg-rose-100 text-rose-800'
-                                : u.role === 'DISPATCHER'
-                                ? 'bg-indigo-100 text-indigo-800'
-                                : u.role === 'SHIPPER'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-teal-100 text-teal-800'
-                            }`}
-                          >
-                            {u.role === 'DISPATCHER' ? 'Trưởng / NV Bưu Cục' : u.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {assignedWh ? assignedWh.name : 'Tổng Công Ty'}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Hoạt động
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
+                        Không tìm thấy nhân sự phù hợp với điều kiện tìm kiếm.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((u) => {
+                      const assignedWh = warehouses.find((w) => w.id === u.warehouseId);
+                      return (
+                        <tr
+                          key={u.id}
+                          onClick={() => handleOpenEditUser(u)}
+                          className="hover:bg-slate-50/80 transition cursor-pointer group"
+                        >
+                          <td className="py-3 px-4 flex items-center gap-3">
+                            <img
+                              src={u.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120'}
+                              alt={u.name}
+                              className="w-8 h-8 rounded-xl object-cover border border-slate-200"
+                            />
+                            <div>
+                              <div className="font-bold text-slate-900 group-hover:text-emerald-700 transition">
+                                {u.name}
+                              </div>
+                              {u.vehiclePlate && (
+                                <span className="font-mono text-[10px] text-slate-400">Xe: {u.vehiclePlate}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-medium text-slate-700">{u.phone}</td>
+                          <td className="py-3 px-4 text-slate-600 font-medium">{u.email}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
+                                u.role === 'ADMIN'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : u.role === 'DISPATCHER'
+                                  ? 'bg-indigo-100 text-indigo-800'
+                                  : u.role === 'SHIPPER'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-teal-100 text-teal-800'
+                              }`}
+                            >
+                              {u.role === 'DISPATCHER' ? 'Trưởng / NV Bưu Cục' : u.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">
+                            {assignedWh ? assignedWh.name : 'Tổng Công Ty'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Hoạt động
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEditUser(u);
+                                }}
+                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 flex items-center gap-1 transition cursor-pointer text-[11px]"
+                                title="Chỉnh sửa thông tin nhân viên"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                <span>Sửa</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingUser(u);
+                                }}
+                                className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-lg border border-rose-200 flex items-center gap-1 transition cursor-pointer text-[11px]"
+                                title="Xóa nhân viên khỏi hệ thống"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Xóa</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -633,7 +829,7 @@ export const AdminPortal: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: WAREHOUSES MANAGEMENT */}
+      {/* TAB 4: WAREHOUSES MANAGEMENT (Quản lý, thêm, sửa, xóa Bưu cục / Kho) */}
       {activeTab === 'WAREHOUSES' && (
         <div className="space-y-4">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -642,14 +838,14 @@ export const AdminPortal: React.FC = () => {
                 Danh Sách Mạng Lưới Bưu Cục & Kho Bãi Toàn Quốc
               </h3>
               <p className="text-xs text-slate-500">
-                Quản lý các điểm bưu cục trung chuyển, phân bổ sức chứa và chỉ định Trưởng bưu cục phụ trách.
+                Quản lý các điểm bưu cục trung chuyển, phân bổ sức chứa, chỉ định Trưởng bưu cục phụ trách, chỉnh sửa và xóa điểm bưu cục.
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setIsAddWarehouseModalOpen(true)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
             >
               <WarehouseIcon className="w-4 h-4" />
               <span>+ Thêm Bưu Cục Mới</span>
@@ -660,24 +856,46 @@ export const AdminPortal: React.FC = () => {
             {warehouses.map((wh) => (
               <div
                 key={wh.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3 text-xs"
+                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3 text-xs hover:border-indigo-300 transition flex flex-col justify-between"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-extrabold text-slate-900 text-sm">{wh.name}</h4>
-                    <span className="font-mono text-slate-500 text-[11px]">{wh.code}</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-extrabold text-slate-900 text-sm">{wh.name}</h4>
+                      <span className="font-mono text-slate-500 text-[11px]">{wh.code}</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      Bưu Cục Chuẩn
+                    </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    Bưu Cục Chuẩn
-                  </span>
+
+                  <div className="space-y-1.5 text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>Địa chỉ: <strong className="text-slate-900">{wh.address}</strong></div>
+                    <div>Tỉnh/TP: <strong>{wh.province}</strong></div>
+                    <div>Trưởng bưu cục: <strong className="text-indigo-700">{wh.manager}</strong></div>
+                    <div>Hotline: <strong className="font-mono">{wh.phone}</strong></div>
+                    <div>Tồn kho: <strong className="text-emerald-700">{wh.currentStock} / {wh.capacity} kiện</strong></div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5 text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div>Địa chỉ: <strong className="text-slate-900">{wh.address}</strong></div>
-                  <div>Tỉnh/TP: <strong>{wh.province}</strong></div>
-                  <div>Trưởng bưu cục: <strong className="text-indigo-700">{wh.manager}</strong></div>
-                  <div>Hotline: <strong className="font-mono">{wh.phone}</strong></div>
-                  <div>Tồn kho: <strong className="text-emerald-700">{wh.currentStock} / {wh.capacity} kiện</strong></div>
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditWarehouse(wh)}
+                    className="flex-1 py-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-bold rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Chỉnh Sửa</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeletingWarehouse(wh)}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl border border-rose-200 flex items-center justify-center gap-1.5 transition cursor-pointer text-xs"
+                    title="Xóa bưu cục"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Xóa</span>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1083,6 +1301,358 @@ export const AdminPortal: React.FC = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHỈNH SỬA NHÂN SỰ */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-black text-sm text-slate-900">
+                  Chỉnh Sửa Thông Tin Nhân Sự: {editingUser.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer text-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editUserSuccess ? (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs text-center space-y-1">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
+                <p className="font-bold">{editUserSuccess}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveEditUser} className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Họ và tên nhân sự:</label>
+                    <input
+                      type="text"
+                      value={editUserName}
+                      onChange={(e) => setEditUserName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Số điện thoại:</label>
+                    <input
+                      type="tel"
+                      value={editUserPhone}
+                      onChange={(e) => setEditUserPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Email đăng nhập:</label>
+                    <input
+                      type="email"
+                      value={editUserEmail}
+                      onChange={(e) => setEditUserEmail(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Vai trò hệ thống:</label>
+                    <select
+                      value={editUserRole}
+                      onChange={(e) => setEditUserRole(e.target.value as UserRole)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="ADMIN">Quản Trị Viên (ADMIN)</option>
+                      <option value="DISPATCHER">Trưởng / NV Bưu Cục (DISPATCHER)</option>
+                      <option value="SHIPPER">Tài Xế Shipper (SHIPPER)</option>
+                      <option value="SHOP">Chủ Cửa Hàng (SHOP)</option>
+                      <option value="CUSTOMER">Khách Hàng (CUSTOMER)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Bưu cục công tác:</label>
+                  <select
+                    value={editUserWarehouseId}
+                    onChange={(e) => setEditUserWarehouseId(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden cursor-pointer"
+                  >
+                    <option value="">Tổng Công Ty (Toàn hệ thống)</option>
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name} ({wh.code}) - {wh.province}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {editUserRole === 'SHIPPER' && (
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Biển số xe giao hàng:</label>
+                    <input
+                      type="text"
+                      value={editUserVehiclePlate}
+                      onChange={(e) => setEditUserVehiclePlate(e.target.value)}
+                      placeholder="VD: 59P2-999.88"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono uppercase focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
+                  >
+                    Lưu Thay Đổi
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA NHÂN SỰ */}
+      {deletingUser && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-slate-900">Xóa Nhân Sự</h3>
+                <p className="text-[11px] text-slate-500">Xác nhận thu hồi quyền và xóa tài khoản</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2">
+                <img
+                  src={deletingUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120'}
+                  alt={deletingUser.name}
+                  className="w-8 h-8 rounded-xl object-cover"
+                />
+                <div>
+                  <div className="font-bold text-slate-900">{deletingUser.name}</div>
+                  <div className="text-[11px] text-slate-500 font-mono">{deletingUser.phone}</div>
+                </div>
+              </div>
+              <div className="text-slate-600 pt-1 border-t border-slate-200 text-[11px]">
+                Vai trò: <strong className="text-rose-700">{deletingUser.role}</strong>
+                <br />
+                Email: <span>{deletingUser.email}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-100 font-medium">
+              ⚠️ Lưu ý: Nhân sự này sẽ bị xóa khỏi danh sách và không thể đăng nhập vào hệ thống nữa.
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setDeletingUser(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteUser}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHỈNH SỬA BƯU CỤC */}
+      {editingWarehouse && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <WarehouseIcon className="w-5 h-5 text-indigo-600" />
+                <h3 className="font-black text-sm text-slate-900">
+                  Chỉnh Sửa Bưu Cục: {editingWarehouse.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingWarehouse(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer text-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editWhSuccess ? (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs text-center space-y-1">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
+                <p className="font-bold">{editWhSuccess}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveEditWarehouse} className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Mã bưu cục (Code):</label>
+                    <input
+                      type="text"
+                      value={editWhCode}
+                      onChange={(e) => setEditWhCode(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono uppercase font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Tỉnh / Thành phố:</label>
+                    <input
+                      type="text"
+                      value={editWhProvince}
+                      onChange={(e) => setEditWhProvince(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Tên bưu cục:</label>
+                  <input
+                    type="text"
+                    value={editWhName}
+                    onChange={(e) => setEditWhName(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Địa chỉ chi tiết:</label>
+                  <input
+                    type="text"
+                    value={editWhAddress}
+                    onChange={(e) => setEditWhAddress(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Trưởng bưu cục:</label>
+                    <input
+                      type="text"
+                      value={editWhManager}
+                      onChange={(e) => setEditWhManager(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Hotline:</label>
+                    <input
+                      type="text"
+                      value={editWhPhone}
+                      onChange={(e) => setEditWhPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Sức chứa (Kiện):</label>
+                  <input
+                    type="number"
+                    value={editWhCapacity}
+                    onChange={(e) => setEditWhCapacity(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingWarehouse(null)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition cursor-pointer"
+                  >
+                    Lưu Thay Đổi
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XÁC NHẬN XÓA BƯU CỤC */}
+      {deletingWarehouse && (
+        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="font-black text-sm text-slate-900">Xóa Bưu Cục</h3>
+                <p className="text-[11px] text-slate-500">Xóa bưu cục khỏi hệ thống mạng lưới</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1 text-xs">
+              <div className="font-bold text-slate-900">{deletingWarehouse.name}</div>
+              <div className="font-mono text-[11px] text-slate-500">Mã: {deletingWarehouse.code}</div>
+              <div className="text-slate-600 text-[11px]">{deletingWarehouse.address}, {deletingWarehouse.province}</div>
+            </div>
+
+            <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-100 font-medium">
+              ⚠️ Cảnh báo: Việc xóa bưu cục sẽ loại bỏ điểm hub này khỏi hệ thống điều phối toàn quốc.
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setDeletingWarehouse(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteWarehouse}
+                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+              >
+                Xác Nhận Xóa
+              </button>
+            </div>
           </div>
         </div>
       )}

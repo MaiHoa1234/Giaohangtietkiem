@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -48,6 +49,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     cancelShipment,
     calculateFee,
     createCustomerAddress,
+    deleteCustomerAddress,
   } = useLogistics();
 
   const [activeTab, setActiveTab] = useState<'MY_ORDERS' | 'CREATE_ORDER' | 'ADDRESS_BOOK' | 'COD_WALLET'>('MY_ORDERS');
@@ -858,12 +860,22 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             {addresses.map((addr) => (
               <div key={addr.id} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-xs space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-900">{addr.label}</span>
-                  {addr.isDefault && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
-                      Mặc định
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900">{addr.label}</span>
+                    {addr.isDefault && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+                        Mặc định
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteCustomerAddress(addr.id)}
+                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                    title="Xóa địa chỉ này"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <div className="text-slate-700 font-semibold">{addr.contactName} - {addr.phone}</div>
                 <div className="text-slate-500">{addr.address}, {addr.district}, {addr.province}</div>

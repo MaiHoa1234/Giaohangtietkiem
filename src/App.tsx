@@ -13,7 +13,6 @@ import { DispatcherPortal } from './components/DispatcherPortal';
 import { AdminPortal } from './components/AdminPortal';
 import { WaybillModal } from './components/WaybillModal';
 import { PriceCalculatorModal } from './components/PriceCalculatorModal';
-import { DatabaseModal } from './components/DatabaseModal';
 import { TicketModal } from './components/TicketModal';
 import { Shipment } from './types/logistics';
 
@@ -29,7 +28,6 @@ function AppContent() {
   // Modals state
   const [waybillShipment, setWaybillShipment] = useState<Shipment | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
   const [ticketModalCode, setTicketModalCode] = useState<string | null>(null);
 
   // Mobile sidebar state
@@ -88,7 +86,6 @@ function AppContent() {
         currentView={currentView}
         onNavigate={(view) => setCurrentView(view)}
         onOpenCalculator={() => setIsCalculatorOpen(true)}
-        onOpenDatabaseModal={() => setIsDatabaseOpen(true)}
         isOpenMobile={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />
@@ -101,7 +98,6 @@ function AppContent() {
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
           onSearchTrack={handleSearchTrack}
           onOpenCalculator={() => setIsCalculatorOpen(true)}
-          onOpenDatabaseModal={() => setIsDatabaseOpen(true)}
           onNavigateLogin={() => setCurrentView('LOGIN')}
         />
 
@@ -182,11 +178,6 @@ function AppContent() {
       <PriceCalculatorModal
         isOpen={isCalculatorOpen}
         onClose={() => setIsCalculatorOpen(false)}
-      />
-
-      <DatabaseModal
-        isOpen={isDatabaseOpen}
-        onClose={() => setIsDatabaseOpen(false)}
       />
 
       <TicketModal
