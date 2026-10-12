@@ -1,6 +1,6 @@
 # HƯỚNG DẪN CÀI ĐẶT VÀ CHẠY DỰ ÁN TRÊN MÁY LOCAL (XAMPP & NODE.JS)
 
-Hệ thống Quản lý Vận chuyển & Giao nhận FastShip Logistics.
+Hệ thống Quản lý Vận chuyển & Giao nhận FastShip Logistics ERP.
 
 ---
 
@@ -25,21 +25,22 @@ Hệ thống Quản lý Vận chuyển & Giao nhận FastShip Logistics.
    ```
    *(Hoặc tệp `fastship_database.sql` bạn tải từ nút "CSDL MySQL (.sql)" trên thanh công cụ của web).*
 6. Cuộn xuống dưới cùng và nhấn nút **Import** (Thực hiện).
-7. Hệ thống sẽ tự động tạo Database `fastship_db` gồm đầy đủ 11 bảng chuẩn quan hệ và dữ liệu mẫu thực tế.
+7. Hệ thống sẽ tự động tạo Database `fastship_db` gồm đầy đủ **13 bảng chuẩn quan hệ** và **hơn 100+ bản ghi dữ liệu thực tế** (bao gồm: `roles`, `warehouses`, `users`, `shops`, `shippers`, `post_office_staff`, `shipping_services`, `shipments`, `shipment_status_history`, `reconciliation_batches`, `shipper_cash_deposits`, `support_tickets`, `customer_addresses`).
 
 ---
 
 ## 💻 BƯỚC 2: CHẠY WEBSITE BẰNG NODE.JS TRÊN MÁY BẠN
 
-1. Mở thư mục dự án này bằng **Terminal** (CMD hoặc PowerShell trên Windows, Terminal trên macOS/Linux):
+1. Mở thư mục dự án này bằng **Terminal** (CMD, Git Bash hoặc PowerShell trên Windows, Terminal trên macOS/Linux):
    ```bash
    cd <duong_dan_thu_muc_du_an>
    ```
 
 2. Cài đặt các thư viện phụ thuộc:
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
+   *(Lưu ý: Thêm cờ `--legacy-peer-deps` để tránh lỗi xung đột phiên bản trên npm 11+).*
 
 3. Khởi động máy chủ chạy web:
    ```bash
@@ -50,17 +51,40 @@ Hệ thống Quản lý Vận chuyển & Giao nhận FastShip Logistics.
    ```
    http://localhost:3000
    ```
-   *(Nếu cổng 3000 bị bận, Vite sẽ hiển thị địa chỉ cổng thay thế trên Terminal, ví dụ http://localhost:5173).*
+   *(Nếu cổng 3000 bị bận, Vite sẽ hiển thị cổng thay thế trên Terminal, ví dụ http://localhost:5173).*
 
 ---
 
-## 🔑 BƯỚC 3: TÀI KHOẢN ĐĂNG NHẬP MẪU
+## 🔑 BƯỚC 3: TÀI KHOẢN ĐĂNG NHẬP THỰC TẾ TRONG HỆ THỐNG
 
-Khi màn hình Đăng Nhập hiển thị, bạn có thể:
-- **Cách 1 (Nhanh nhất):** Chọn tab **"Tài Khoản Theo Vai Trò (1-Click)"** và bấm trực tiếp vào vai trò mong muốn để vào ngay.
-- **Cách 2:** Nhập tài khoản và mật khẩu:
-  - **Shop Yến Fashion:** `yen.fashion@shop.vn` / Mật khẩu: `123456`
-  - **Quản Trị Viên (Admin):** `admin@fastship.vn` / Mật khẩu: `123456`
-  - **Điều Phối Kho Tân Bình:** `hung.dieuphoi@fastship.vn` / Mật khẩu: `123456`
-  - **Tài Xế Shipper:** `tuan.shipper@fastship.vn` / Mật khẩu: `123456`
-  - **Khách Hàng:** `thutrang@gmail.com` / Mật khẩu: `123456`
+Tất cả tài khoản đều đã được tạo sẵn trong CSDL MySQL và hệ thống với mật khẩu mặc định: `123456`
+
+1. **Quản Trị Viên Hệ Thống (Admin Toàn Quyền):**
+   - Tài khoản / Email: `admin@fastship.vn` (hoặc `admin_quan`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Xem báo cáo toàn quốc, cấu hình cước phí, quản lý bưu cục, thêm trưởng bưu cục, nhân viên và shipper.
+
+2. **Trưởng Bưu Cục Tân Bình (Quản lý chi nhánh):**
+   - Tài khoản / Email: `hung.dieuphoi@fastship.vn` (hoặc `manager_hung`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Quản lý hoạt động bưu cục, thêm nhân viên, thêm shipper, điều phối hàng tồn và kiểm tra quỹ COD.
+
+3. **Nhân Viên Giao Dịch & Quầy Kho:**
+   - Tài khoản / Email: `duyen.staff@fastship.vn` (hoặc `staff_duyen`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Tiếp nhận đơn tại quầy, kiểm đếm hàng hóa, thu tiền nộp từ shipper.
+
+4. **Tài Xế Giao Hàng Shipper:**
+   - Tài khoản / Email: `tuan.shipper@fastship.vn` (hoặc `shipper_tuan`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Nhận đơn giao, cập nhật trạng thái phát hàng thành công/thất bại, nộp tiền mặt COD.
+
+5. **Chủ Cửa Hàng (Shop Yến Fashion):**
+   - Tài khoản / Email: `yen.fashion@shop.vn` (hoặc `shop_yen`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Tạo đơn hàng loạt qua Excel, in phiếu A6 mã vạch, theo dõi đối soát và rút tiền COD.
+
+6. **Khách Hàng Cá Nhân:**
+   - Tài khoản / Email: `thutrang@gmail.com` (hoặc `khach_trang`)
+   - Mật khẩu: `123456`
+   - Quyền hạn: Gửi hàng lẻ, tra cứu vận đơn trực tiếp, gửi khiếu nại.

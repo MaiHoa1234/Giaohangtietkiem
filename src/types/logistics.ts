@@ -120,6 +120,7 @@ export interface Shipper {
   phone: string;
   vehiclePlate: string;
   assignedArea: string;
+  warehouseId?: string;
   activeOrdersCount: number;
   completedOrdersCount: number;
   rating: number;

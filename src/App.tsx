@@ -35,23 +35,29 @@ function AppContent() {
   // Mobile sidebar state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // When role changes and user is authenticated, sync to their relevant workspace
+  // Strict RBAC Guard: Protect views based on user's assigned role
+  const isViewAllowedForRole = (view: string, role: string) => {
+    if (view === 'PUBLIC' || view === 'TRACKING' || view === 'LOGIN') return true;
+    if (role === 'ADMIN') return true; // Super Admin can access and audit all portals
+    if (role === 'SHOP') return view === 'SHOP';
+    if (role === 'SHIPPER') return view === 'SHIPPER';
+    if (role === 'DISPATCHER') return view === 'DISPATCHER';
+    if (role === 'CUSTOMER') return view === 'CUSTOMER';
+    return false;
+  };
+
+  // Sync and protect view whenever role or currentView changes
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (currentUser.role === 'PUBLIC') {
-      setCurrentView('PUBLIC');
-    } else if (currentUser.role === 'CUSTOMER') {
-      setCurrentView('CUSTOMER');
-    } else if (currentUser.role === 'SHOP') {
-      setCurrentView('SHOP');
-    } else if (currentUser.role === 'SHIPPER') {
-      setCurrentView('SHIPPER');
-    } else if (currentUser.role === 'DISPATCHER') {
-      setCurrentView('DISPATCHER');
-    } else if (currentUser.role === 'ADMIN') {
-      setCurrentView('ADMIN');
+
+    if (!isViewAllowedForRole(currentView, currentUser.role)) {
+      if (currentUser.role === 'SHOP') setCurrentView('SHOP');
+      else if (currentUser.role === 'SHIPPER') setCurrentView('SHIPPER');
+      else if (currentUser.role === 'DISPATCHER') setCurrentView('DISPATCHER');
+      else if (currentUser.role === 'CUSTOMER') setCurrentView('CUSTOMER');
+      else setCurrentView('ADMIN');
     }
-  }, [currentUser.role, isAuthenticated]);
+  }, [currentUser.role, isAuthenticated, currentView]);
 
   const handleSearchTrack = (code: string) => {
     setTrackedTrackingCode(code);

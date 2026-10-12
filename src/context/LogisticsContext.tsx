@@ -100,6 +100,31 @@ interface LogisticsContextType {
   settleReconciliationBatch: (batchId: string) => boolean;
   createCustomerAddress: (address: Omit<CustomerAddress, 'id'>) => CustomerAddress;
   updatePricingRule: (newRules: Partial<PricingRule>) => void;
+  addShipper: (data: {
+    name: string;
+    phone: string;
+    vehiclePlate: string;
+    assignedArea: string;
+    warehouseId?: string;
+    email?: string;
+  }) => Shipper;
+  addStaffUser: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    role: UserRole;
+    warehouseId?: string;
+    position?: string;
+  }) => UserProfile;
+  addWarehouse: (data: {
+    code: string;
+    name: string;
+    address: string;
+    province: string;
+    phone: string;
+    manager: string;
+    capacity?: number;
+  }) => Warehouse;
   resetAllData: () => void;
 }
 
@@ -109,6 +134,11 @@ const LogisticsContext = createContext<LogisticsContextType | undefined>(undefin
 
 export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load state or use initial mock data
+  const [users, setUsers] = useState<UserProfile[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_PREFIX + 'users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_PREFIX + 'user');
     return saved ? JSON.parse(saved) : INITIAL_USERS[1]; // default Shop Yến
@@ -120,10 +150,13 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   });
 
   const login = (userIdOrRole: string): boolean => {
+    const query = userIdOrRole.trim().toLowerCase();
     const match =
-      INITIAL_USERS.find((u) => u.id === userIdOrRole || u.role === userIdOrRole) ||
-      INITIAL_USERS.find((u) => u.email.toLowerCase().includes(userIdOrRole.toLowerCase())) ||
-      INITIAL_USERS[1];
+      users.find((u) => u.id === userIdOrRole || u.role === userIdOrRole) ||
+      users.find((u) => u.email.toLowerCase() === query) ||
+      users.find((u) => u.phone === userIdOrRole) ||
+      users.find((u) => u.email.toLowerCase().includes(query)) ||
+      users[1];
     
     setCurrentUser(match);
     setIsAuthenticated(true);
@@ -842,12 +875,123 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     addLog('Cập nhật bảng giá', 'Quản trị viên đã thay đổi quy tắc tính cước hệ thống');
   };
 
+  const addShipper = (shipperData: {
+    name: string;
+    phone: string;
+    vehiclePlate: string;
+    assignedArea: string;
+    warehouseId?: string;
+    email?: string;
+  }): Shipper => {
+    const newId = `SHIP_${Date.now()}`;
+    const newShipper: Shipper = {
+      id: newId,
+      name: shipperData.name,
+      phone: shipperData.phone,
+      vehiclePlate: shipperData.vehiclePlate,
+      assignedArea: shipperData.assignedArea,
+      warehouseId: shipperData.warehouseId,
+      activeOrdersCount: 0,
+      completedOrdersCount: 0,
+      rating: 5.0,
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120',
+      cashInHand: 0,
+    };
+
+    const updatedShippers = [newShipper, ...shippers];
+    setShippers(updatedShippers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'shippers', JSON.stringify(updatedShippers));
+
+    // Register a user profile so this shipper can log into the system
+    const shipperEmail = shipperData.email || `shipper_${shipperData.phone}@fastship.vn`;
+    const newShipperUser: UserProfile = {
+      id: `user_${newId}`,
+      name: shipperData.name,
+      phone: shipperData.phone,
+      email: shipperEmail,
+      role: 'SHIPPER',
+      vehiclePlate: shipperData.vehiclePlate,
+      warehouseId: shipperData.warehouseId,
+      avatarUrl: newShipper.avatarUrl,
+    };
+    const updatedUsers = [...users, newShipperUser];
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    addLog('Thêm Shipper', `Đã thêm tài xế ${newShipper.name} (${newShipper.vehiclePlate})`);
+    return newShipper;
+  };
+
+  const addStaffUser = (userData: {
+    name: string;
+    phone: string;
+    email: string;
+    role: UserRole;
+    warehouseId?: string;
+    position?: string;
+  }): UserProfile => {
+    const newId = `user_staff_${Date.now()}`;
+    const newUser: UserProfile = {
+      id: newId,
+      name: userData.name,
+      phone: userData.phone,
+      email: userData.email,
+      role: userData.role,
+      warehouseId: userData.warehouseId,
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120',
+    };
+
+    const updatedUsers = [...users, newUser];
+    setUsers(updatedUsers);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'users', JSON.stringify(updatedUsers));
+
+    // If assigned as manager of warehouse, update warehouse manager name
+    if (userData.warehouseId && (userData.role === 'DISPATCHER' || userData.position?.includes('Trưởng'))) {
+      const updatedWh = warehouses.map((wh) =>
+        wh.id === userData.warehouseId ? { ...wh, manager: userData.name } : wh
+      );
+      setWarehouses(updatedWh);
+      localStorage.setItem(STORAGE_KEY_PREFIX + 'warehouses', JSON.stringify(updatedWh));
+    }
+
+    addLog('Thêm Nhân Sự', `Đã tạo tài khoản ${newUser.name} (${newUser.role})`);
+    return newUser;
+  };
+
+  const addWarehouse = (whData: {
+    code: string;
+    name: string;
+    address: string;
+    province: string;
+    phone: string;
+    manager: string;
+    capacity?: number;
+  }): Warehouse => {
+    const newWh: Warehouse = {
+      id: `WH_${whData.code.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
+      code: whData.code,
+      name: whData.name,
+      address: whData.address,
+      province: whData.province,
+      phone: whData.phone,
+      manager: whData.manager,
+      capacity: whData.capacity || 10000,
+      currentStock: 0,
+    };
+    const updated = [...warehouses, newWh];
+    setWarehouses(updated);
+    localStorage.setItem(STORAGE_KEY_PREFIX + 'warehouses', JSON.stringify(updated));
+    addLog('Thêm Bưu Cục', `Tạo mới bưu cục ${newWh.name} (${newWh.code})`);
+    return newWh;
+  };
+
   const resetAllData = () => {
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith(STORAGE_KEY_PREFIX)) {
         localStorage.removeItem(key);
       }
     });
+    setUsers(INITIAL_USERS);
     setCurrentUser(INITIAL_USERS[1]);
     setShipments(INITIAL_SHIPMENTS);
     setWarehouses(INITIAL_WAREHOUSES);
@@ -863,7 +1007,7 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         user: 'Quản trị viên',
         role: 'SYSTEM',
         action: 'Khôi phục dữ liệu mẫu',
-        details: 'Đã hoàn nguyên toàn bộ cơ sở dữ liệu mẫu ban đầu của đồ án',
+        details: 'Đã hoàn nguyên toàn bộ cơ sở dữ liệu mẫu ban đầu của hệ thống',
       },
     ]);
   };
@@ -872,7 +1016,7 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <LogisticsContext.Provider
       value={{
         currentUser,
-        allUsers: INITIAL_USERS,
+        allUsers: users,
         isAuthenticated,
         login,
         logout,
@@ -903,6 +1047,9 @@ export const LogisticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         settleReconciliationBatch,
         createCustomerAddress,
         updatePricingRule,
+        addShipper,
+        addStaffUser,
+        addWarehouse,
         resetAllData,
       }}
     >
