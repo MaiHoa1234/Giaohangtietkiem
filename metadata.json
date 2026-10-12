@@ -1,0 +1,6 @@
+{
+  "name": "Hệ thống Quản lý Vận chuyển Giao Hàng Nhanh - Tiết Kiệm (FastShip)",
+  "description": "Nền tảng quản lý và theo dõi dịch vụ giao nhận hàng hóa toàn diện cho đồ án xây dựng phần mềm: Khách hàng, Shop, Shipper, Điều phối kho, Đối soát COD và Admin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
